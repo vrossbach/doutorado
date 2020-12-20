@@ -1,0 +1,53 @@
+#Rotina para implementação do método GCI pontual
+
+clear all;
+%GCI de um único ponto (variável global)
+%==============================MALHAS==============================
+%Numero de elementos:
+N1=117428; %MalhaFina
+%N1=71591;  %MalhaMedia
+N3=31798;  %MalhaGrossa
+N2=53319;
+h1=(1/N1)^(1/2);  
+h2=(1/N2)^(1/2); 
+h3=(1/N3)^(1/2); 
+r21=h2/h1
+r32=h3/h2
+%============================VARIAVEL=============================
+NomeDaVariavel="Flame Height (mm)";
+f1=9.033; %(MalhaFina)
+%f1=9.196; %(MalhaMedia)
+f3=9.619; %(MalhaGrossa)
+f2=9.459;
+e32=f3-f2;
+e21=f2-f1;
+ 
+function y=funp(x,e32,e21,r32,r21)
+       s=1*sign(e32/e21);
+       q=log(((r21^x)-s)/((r32^x)-s));
+       y=(abs(log(abs(e32/e21))+q)/(log(r21)))-x;
+endfunction
+ 
+p=fzero(@(x) funp(x,e32,e21,r32,r21), 15)
+ f_ex32=((r32^p)*f2-f3)/((r32^p)-1)
+f_ex21=((r21^p)*f1-f2)/((r21^p)-1)
+ 
+E_a32=abs((f2-f3)/f2)
+E_a21=abs((f1-f2)/f1)
+ 
+E_ex32=abs((f_ex32-f2)/f_ex32)
+E_ex21=abs((f_ex21-f1)/f_ex21)
+ 
+GCI32=(1.25*E_a32/((r32^p)-1))*100
+GCI21=(1.25*E_a21/((r21^p)-1))*100
+%=============================GRAFICO==============================
+xnumber=[0 1/N1 1/N2 1/N3];
+ynumber=[f_ex21 f1 f2 f3];
+SPLynumber = interp1 (xnumber,ynumber,[0:1/(50*N1):1/N3], "cubic");
+plot(xnumber,ynumber,"xb;;",...
+         [0:1/(50*N1):1/N3],SPLynumber,"-r;;")
+xlabel("1/N"); 
+A=(1/N3)+0.05*(1/N3)
+xlim([-1e-10,A]);
+ylabel(NomeDaVariavel);
+ 

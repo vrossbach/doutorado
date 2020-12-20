@@ -1,0 +1,50 @@
+#UDF para o modelo de arraste EMMS (YANG et al., 2003)
+
+        #include "UDF.h"
+        #define diam2 6.7e-5
+         DEFINE_EXCHANGE_PROPERTY (drag, cell, mix_thread, gas, solid)
+        {
+        Thread *thread_g, *thread_s;
+        real x_vel_g, x_vel_s, y_vel_g, y_vel_s, z_vel_g, z_vel_s,abs_v, slip_x, slip_y, slip_z, rho_g, rho_s, mu_g, reyp, CDo, k_g_s, om_g, void_g;
+             
+        /*find the threads for the gas primary phase*/
+        /*find the threads for the solid secondary phase*/
+        thread_g = THREAD_SUB_THREAD (mix_thread, gas);/*gas*/
+        thread_s = THREAD_SUB_THREAD (mix_thread, solid);/*solid*/
+         /*find phase velocities and properties*/
+        x_vel_g = C_U(cell, thread_g);
+        y_vel_g = C_V(cell, thread_g);
+        z_vel_g = C_W(cell, thread_g);
+        x_vel_s = C_U(cell, thread_s);
+        y_vel_s = C_V(cell, thread_s);
+        z_vel_s = C_W(cell, thread_s);
+        
+        slip_x = x_vel_g-x_vel_s;
+        slip_y = y_vel_g-y_vel_s;
+        slip_z = z_vel_g-z_vel_s;
+        
+        rho_g = C_R(cell, thread_g);
+        rho_s = C_R(cell, thread_s);
+        mu_g = C_MU_L(cell, thread_g);
+        /*compute slip*/
+        abs_v = sqrt(slip_x*slip_x + slip_y*slip_y + slip_z*slip_z);
+        /*compute Reynolds number*/
+        void_g = C_VOF(cell, thread_g); /*gas volume fraction*/ 
+        if (void_g>=0.74 && void_g<0.82)
+         om_g = -0.5760+0.0214/(4.*pow((void_g-0.7463),2.)+0.0044);
+        else if (void_g>=0.82 && void_g<0.97)
+         om_g = -0.0101+0.0038/(4.*pow((void_g-0.7789),2.)+0.0040);
+        else
+         om_g = -31.8295+32.8295*void_g;
+   	  reyp = rho_g*abs_v*diam2*void_g/mu_g;
+        if (reyp<1000.)
+         CDo = (24./reyp)*(1.+0.15*pow(reyp, 0.687));
+        else
+         CDo = 0.44;  
+        /*compute and return k_g_s*/
+        if(void_g<=0.74)
+         k_g_s = ((150.*(1.-void_g)*(1.-void_g)*mu_g/(void_g*diam2*diam2))+1.75*(1.-void_g)*rho_g*abs_v/diam2);
+        else
+         k_g_s = (3./4.)*((1.-void_g)*void_g/diam2)*rho_g*abs_v*CDo*om_g;
+        return k_g_s;
+        }

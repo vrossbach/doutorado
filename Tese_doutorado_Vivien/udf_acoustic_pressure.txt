@@ -1,0 +1,37 @@
+#UDF para o modelo de correnteza acústica de Sajjadi et al. (2015)
+#include "UDF.h"
+#define c0 340.
+#define U 0.068
+#define w0 1.0e-12
+#define SPL 120.
+#define pi 3.14159265
+#define freq 40000.
+#define rho 1.2
+ 
+DEFINE_PROFILE(pressure_profile,t,i)
+{
+    real x[ND_ND];
+    real y;
+    real Pt;
+    real Pa;
+    real w;
+    real Ius;
+    real pot;
+    double time;
+    face_t f;
+    time = 0.;
+    begin_f_loop(f,t);
+        {
+        F_CENTROID(x,f,t);
+        y = x[1];
+        w = 2.*pi*freq;
+        pot = 2.*w0*pow(10., (SPL/10.));
+        Ius = pot/(pi*0.01*0.01);
+        Pa = sqrt(2.*rho*Ius*c0);
+        Pt = -Pa*sin(w*time);
+        F_PROFILE(f,t,i) = Pt;
+        }
+    end_f_loop(f,t);
+}
+
+

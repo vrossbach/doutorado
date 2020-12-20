@@ -1,0 +1,98 @@
+#GCI 3D para Octave
+Rotina para implementação do método GCI 3-D
+
+%Cálculo do GCI para 3 malhas
+clear all;
+clf;
+ 
+f=load("frac.dat");
+ 
+Pos=f(:,1);
+f1=f(:,4);
+f2=f(:,3);
+f3=f(:,2);
+tol=1e-8;
+ 
+r21=1.26;
+r32=1.15;
+ 
+e32=f3-f2;
+e21=f2-f1;
+ 
+function y=funp(x,e32,e21,r32,r21)
+  s=1*sign(e32/e21);
+  q=log(((r21^x)-s)/((r32^x)-s));
+  y=(abs(log(abs(e32/e21))+q)/(log(r21)))-x;
+endfunction
+ 
+j=0;
+for i=1:size(f1)
+  if(abs(e32(i)) >tol && abs(e21(i)) >tol)
+    p(i)=fzero(@(x) funp(x,e32(i),e21(i),r32,r21),10);
+    j++;
+  else 
+    p(i)=0;
+  endif
+endfor
+pave=sum(p)/j;
+ f_ex32=((r32^pave)*f2-f3)./((r32^pave)-1);
+f_ex21=((r21^pave)*f1-f2)./((r21^pave)-1);
+ 
+E_a32=abs((f2-f3)./f2);
+E_a21=abs((f1-f2)./f1);
+ 
+E_ex32=abs((f_ex32-f2)./f_ex32);
+E_ex21=abs((f_ex21-f1)./f_ex21);
+ 
+GCI_32=(1.25*E_a32./((r32^pave)-1));
+GCI_21=(1.25*E_a21./((r21^pave)-1));
+ 
+subplot(2,2,1)
+plot(Pos,f3,"-r;Malha grosseira;","LineWidth",2,...
+      Pos,f2,"-m;Malha intermediária;","LineWidth",2,...
+      Pos,f1,"-b;Malha refinada;","LineWidth",2);
+ylabel("Velocidade do gás [m/s]");
+xlabel("Posição radial [m]");
+xlim([0,3]);
+legend location northoutside;
+legend boxoff;
+grid off;
+subplot(2,2,2)
+plot(Pos,p,".-m;;","Linewidth",2);
+line(xlim,[pave,pave]);
+ylabel("Ordem[-]");
+xlabel("Posição radial [m]");
+xlim([0,3]);
+grid off;
+ 
+subplot(2,2,3);
+bar(Pos,GCI_32*100,".m;;","stacked");
+ylabel("GCI [%]");
+xlabel("Posição radial [m]")
+xlim([0,3]);
+ylim([0,5]);
+grid off;
+ 
+subplot(2,2,4);
+p2=errorbar(Pos,f2,GCI_21.*f2);
+set(p2,"LineWidth",2);
+ylabel("Velocidade do gás [m/s]");
+xlabel("Posição radial [m]");
+xlim([0,3]);
+grid off;
+ 
+print ("GCI_gasvel.png", "-color", "-FHelvetica:12", "-dpng");
+file1=fopen("frac10.dat","w");
+for i=1:size(Pos,8)
+% Post=Pos';
+% f1t=f1';
+% f2t=f2';
+% f3t=f3';
+% f_ex21t=f_ex21';
+% f_ex32t=f_ex32';
+% GCI_21t=GCI_21';
+% GCI_32t=GCI_32';
+  fprintf(file1,"%8.5f %8.5f %8.5f %8.5f %8.5f %8.5f %8.5f %8.5f \n",...
+                [Pos;f1;f2;f3;f_ex21;f_ex32;GCI_21;GCI_32]);
+endfor
+fclose(file1);
